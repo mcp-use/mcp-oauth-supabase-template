@@ -39,19 +39,20 @@ import { mountAuthRoutes } from "./auth-routes.js";
 
 declare const process: { env: Record<string, string | undefined> };
 
-const SUPABASE_PROJECT_ID = process.env.MCP_USE_OAUTH_SUPABASE_PROJECT_ID;
+const SUPABASE_PROJECT_ID =
+  process.env.MCP_USE_OAUTH_SUPABASE_PROJECT_ID ?? "";
 const SUPABASE_PUBLISHABLE_KEY =
-  process.env.MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY;
+  process.env.MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY ?? "";
 const SITE_URL = process.env.MCP_USE_OAUTH_SUPABASE_SITE_URL;
 
 if (!SUPABASE_PROJECT_ID) {
-  throw new Error(
-    "Missing MCP_USE_OAUTH_SUPABASE_PROJECT_ID environment variable",
+  console.warn(
+    "Warning: MCP_USE_OAUTH_SUPABASE_PROJECT_ID is not set — set it before using the server.",
   );
 }
 if (!SUPABASE_PUBLISHABLE_KEY) {
-  throw new Error(
-    "Missing MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY environment variable",
+  console.warn(
+    "Warning: MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY is not set — set it before using the server.",
   );
 }
 
