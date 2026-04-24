@@ -7,21 +7,26 @@
  * the consent URL in the Supabase Dashboard (Authentication → OAuth Server)
  * to point at /auth/consent here.
  *
- * Anonymous sign-ins are used for zero-config sign-up — enable them in the
- * Supabase dashboard under Auth → Providers. See ./auth-routes.ts.
+ * Google and GitHub social login are wired up by default. Enable either
+ * provider in the Supabase Dashboard under Auth → Providers and add the
+ * OAuth callback URL `<SITE_URL>/auth/callback` to the allowed redirects.
  *
  * Token verification is automatic: new Supabase projects sign tokens with
  * ES256 and publish a JWKS endpoint, which the provider fetches and caches.
  * No JWT secret configuration is required.
  *
- * Docs: https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication
+ * Docs: https://supabase.com/docs/guides/auth/oauth-server
  *
  * Environment variables:
  * - MCP_USE_OAUTH_SUPABASE_PROJECT_ID       (required)
  * - MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY  (required — used by the consent UI
  *                                            and by tools calling Supabase)
+ * - MCP_USE_OAUTH_SUPABASE_SITE_URL         (optional; defaults to the request
+ *                                            origin — set for production/proxies)
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   MCPServer,
   oauthSupabaseProvider,
@@ -29,22 +34,24 @@ import {
   object,
 } from "mcp-use/server";
 import { createClient } from "@supabase/supabase-js";
+
 import { mountAuthRoutes } from "./auth-routes.js";
 
-declare const process: { env: Record<string, string> };
+declare const process: { env: Record<string, string | undefined> };
 
 const SUPABASE_PROJECT_ID = process.env.MCP_USE_OAUTH_SUPABASE_PROJECT_ID;
 const SUPABASE_PUBLISHABLE_KEY =
   process.env.MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY;
+const SITE_URL = process.env.MCP_USE_OAUTH_SUPABASE_SITE_URL;
 
 if (!SUPABASE_PROJECT_ID) {
   throw new Error(
-    "Missing MCP_USE_OAUTH_SUPABASE_PROJECT_ID environment variable"
+    "Missing MCP_USE_OAUTH_SUPABASE_PROJECT_ID environment variable",
   );
 }
 if (!SUPABASE_PUBLISHABLE_KEY) {
   throw new Error(
-    "Missing MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY environment variable"
+    "Missing MCP_USE_OAUTH_SUPABASE_PUBLISHABLE_KEY environment variable",
   );
 }
 
@@ -57,10 +64,30 @@ const server = new MCPServer({
   oauth: oauthSupabaseProvider(),
 });
 
-// Mount the consent page that Supabase redirects to after /authorize.
+// ---------------------------------------------------------------------------
+// Serve the compiled Tailwind stylesheet
+// ---------------------------------------------------------------------------
+
+const stylesCss = readFileSync(
+  join(process.cwd(), "public", "styles.css"),
+  "utf-8",
+);
+
+server.app.get("/styles.css", () => {
+  return new Response(stylesCss, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/css; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+});
+
+// Mount the consent + sign-in pages that Supabase redirects to after /authorize.
 mountAuthRoutes(server, {
   projectId: SUPABASE_PROJECT_ID,
   publishableKey: SUPABASE_PUBLISHABLE_KEY,
+  siteUrl: SITE_URL,
 });
 
 server.tool(
@@ -72,7 +99,7 @@ server.tool(
     object({
       userId: ctx.auth.user.userId,
       email: ctx.auth.user.email,
-    })
+    }),
 );
 
 server.tool(
@@ -100,7 +127,7 @@ server.tool(
     }
 
     return object({ notes: data ?? [] });
-  }
+  },
 );
 
 server.listen().then(() => {
