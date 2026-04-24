@@ -37,7 +37,10 @@ import { createClient } from "@supabase/supabase-js";
 
 import { mountAuthRoutes } from "./auth-routes.js";
 
-declare const process: { env: Record<string, string | undefined> };
+declare const process: {
+  env: Record<string, string | undefined>;
+  cwd(): string;
+};
 
 const SUPABASE_PROJECT_ID =
   process.env.MCP_USE_OAUTH_SUPABASE_PROJECT_ID ?? "";

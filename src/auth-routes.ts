@@ -71,7 +71,7 @@ function getSupabaseClient(
       },
       setAll(cookiesToSet) {
         for (const { name, value, options } of cookiesToSet) {
-          setCookie(c, name, value, options);
+          setCookie(c, name, value, options as Parameters<typeof setCookie>[3]);
         }
       },
     },
@@ -119,8 +119,6 @@ export function mountAuthRoutes(
       return c.html(renderSignInPage({ providerHrefs }));
     }
 
-    // @ts-expect-error — the supabase-js type surface for .auth.oauth is
-    // included in newer versions used by the OAuth-server beta.
     const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
       authorizationId,
     );
@@ -280,12 +278,10 @@ export function mountAuthRoutes(
     // (nonexistent) browser window on the server — we hand the URL back to
     // the client-side consent page, which performs the navigation.
     const { data, error } = approve
-      ? // @ts-expect-error — see getAuthorizationDetails note above
-        await supabase.auth.oauth.approveAuthorization(authorizationId, {
+      ? await supabase.auth.oauth.approveAuthorization(authorizationId, {
           skipBrowserRedirect: true,
         })
-      : // @ts-expect-error
-        await supabase.auth.oauth.denyAuthorization(authorizationId, {
+      : await supabase.auth.oauth.denyAuthorization(authorizationId, {
           skipBrowserRedirect: true,
         });
 
