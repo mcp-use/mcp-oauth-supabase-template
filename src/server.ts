@@ -62,7 +62,7 @@ const server = new MCPServer({
   name: "mcp-oauth-supabase",
   version: "1.0.0",
   description: "MCP server with Supabase OAuth authentication",
-  oauth: oauthSupabaseProvider(),
+  oauth: oauthSupabaseProvider({ projectId: SUPABASE_PROJECT_ID }),
 });
 
 // ---------------------------------------------------------------------------
