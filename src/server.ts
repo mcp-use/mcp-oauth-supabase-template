@@ -5,11 +5,11 @@
  * /register and .well-known discovery, while this example hosts the consent
  * screen (which also triggers sign-in for unauthenticated users). Configure
  * the consent URL in the Supabase Dashboard (Authentication → OAuth Server)
- * to point at /auth/consent here.
+ * to point at /oauth/consent here.
  *
  * Google and GitHub social login are wired up by default. Enable either
  * provider in the Supabase Dashboard under Auth → Providers and add the
- * OAuth callback URL `<SITE_URL>/auth/callback` to the allowed redirects.
+ * OAuth callback URL `<SITE_URL>/oauth/callback` to the allowed redirects.
  *
  * Token verification is automatic: new Supabase projects sign tokens with
  * ES256 and publish a JWKS endpoint, which the provider fetches and caches.

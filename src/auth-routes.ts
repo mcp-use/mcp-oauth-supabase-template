@@ -7,24 +7,24 @@
  * client, Supabase redirects their browser here with `?authorization_id=<uuid>`.
  *
  * Routes:
- *   GET  /auth/consent?authorization_id=<id>
+ *   GET  /oauth/consent?authorization_id=<id>
  *        Renders the sign-in page if the visitor has no session, otherwise
  *        fetches the authorization details from Supabase and renders consent.
- *   GET  /auth/signin/:provider?authorization_id=<id>
+ *   GET  /oauth/signin/:provider?authorization_id=<id>
  *        Kicks off a Supabase social sign-in (Google or GitHub). Supabase
  *        issues the authorize URL and we 302 to it; PKCE state is stored
  *        in cookies by @supabase/ssr.
- *   GET  /auth/callback?code=<code>&authorization_id=<id>
+ *   GET  /oauth/callback?code=<code>&authorization_id=<id>
  *        Exchange point after the user returns from Google/GitHub. The
  *        code is swapped for a session, the session is written to cookies,
- *        and we redirect back to /auth/consent.
- *   POST /auth/consent?authorization_id=<id>
+ *        and we redirect back to /oauth/consent.
+ *   POST /oauth/consent?authorization_id=<id>
  *        Body: { approve: boolean }
  *        Forwards the decision to Supabase, which responds with a redirect_url
  *        pointing back to the MCP client.
  *
  * Enable the Google and GitHub providers in the Supabase Dashboard
- * (Authentication → Providers) and add `<SITE_URL>/auth/callback` to the
+ * (Authentication → Providers) and add `<SITE_URL>/oauth/callback` to the
  * allowed redirect URLs.
  *
  * Docs: https://supabase.com/docs/guides/auth/oauth-server
@@ -90,15 +90,15 @@ export function mountAuthRoutes(
   const supabaseUrl = supabaseProjectUrl(projectId);
 
   // -------------------------------------------------------------------------
-  // GET /auth/consent?authorization_id=<id>
+  // GET /oauth/consent?authorization_id=<id>
   //
   // This is the URL to configure as the consent screen in the Supabase
   // dashboard. Supabase redirects the browser here with only
   // `authorization_id`. If the user has no session we render sign-in;
   // otherwise we fetch the authorization details and render consent.
   // -------------------------------------------------------------------------
-  server.app.get("/auth/consent", async (c) => {
-    console.log("[auth-routes] GET /auth/consent hit:", new URL(c.req.url).search);
+  server.app.get("/oauth/consent", async (c) => {
+    console.log("[auth-routes] GET /oauth/consent hit:", new URL(c.req.url).search);
     const authorizationId = new URL(c.req.url).searchParams.get(
       "authorization_id",
     );
@@ -113,8 +113,8 @@ export function mountAuthRoutes(
 
     if (!session) {
       const providerHrefs = {
-        google: `/auth/signin/google?authorization_id=${encodeURIComponent(authorizationId)}`,
-        github: `/auth/signin/github?authorization_id=${encodeURIComponent(authorizationId)}`,
+        google: `/oauth/signin/google?authorization_id=${encodeURIComponent(authorizationId)}`,
+        github: `/oauth/signin/github?authorization_id=${encodeURIComponent(authorizationId)}`,
       };
       return c.html(renderSignInPage({ providerHrefs }));
     }
@@ -151,7 +151,7 @@ export function mountAuthRoutes(
     btn.addEventListener('click', async function () {
       buttons.forEach(function (b) { b.disabled = true; });
       try {
-        const res = await fetch('/auth/consent?authorization_id=' + encodeURIComponent(AUTH_ID), {
+        const res = await fetch('/oauth/consent?authorization_id=' + encodeURIComponent(AUTH_ID), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -176,13 +176,13 @@ export function mountAuthRoutes(
   });
 
   // -------------------------------------------------------------------------
-  // GET /auth/signin/:provider?authorization_id=<id>
+  // GET /oauth/signin/:provider?authorization_id=<id>
   // Starts a Supabase social OAuth flow. The returned URL redirects the
   // browser to the provider (Google/GitHub); PKCE state is set by
   // @supabase/ssr via cookies on this response.
   // -------------------------------------------------------------------------
-  server.app.get("/auth/signin/:provider", async (c) => {
-    console.log("[auth-routes] /auth/signin hit:", c.req.param("provider"));
+  server.app.get("/oauth/signin/:provider", async (c) => {
+    console.log("[auth-routes] /oauth/signin hit:", c.req.param("provider"));
     const provider = c.req.param("provider") as Provider;
     if (!PROVIDERS.includes(provider)) {
       return c.text(`Unsupported provider: ${provider}`, 400);
@@ -196,7 +196,7 @@ export function mountAuthRoutes(
     }
 
     const origin = originFromRequest(c, siteUrl);
-    const callbackUrl = `${origin}/auth/callback?authorization_id=${encodeURIComponent(authorizationId)}`;
+    const callbackUrl = `${origin}/oauth/callback?authorization_id=${encodeURIComponent(authorizationId)}`;
 
     const supabase = getSupabaseClient(c, supabaseUrl, publishableKey);
     const { data, error } = await supabase.auth.signInWithOAuth({
@@ -219,13 +219,13 @@ export function mountAuthRoutes(
   });
 
   // -------------------------------------------------------------------------
-  // GET /auth/callback?code=<code>&authorization_id=<id>
+  // GET /oauth/callback?code=<code>&authorization_id=<id>
   // Exchange the code for a session. @supabase/ssr writes the session
   // cookies automatically through our cookie adapter.
   // -------------------------------------------------------------------------
-  server.app.get("/auth/callback", async (c) => {
+  server.app.get("/oauth/callback", async (c) => {
     const url = new URL(c.req.url);
-    console.log("[auth-routes] /auth/callback hit:", url.search);
+    console.log("[auth-routes] /oauth/callback hit:", url.search);
     const code = url.searchParams.get("code");
     const authorizationId = url.searchParams.get("authorization_id");
     const providerError = url.searchParams.get("error_description");
@@ -245,18 +245,18 @@ export function mountAuthRoutes(
     }
 
     return c.redirect(
-      `/auth/consent?authorization_id=${encodeURIComponent(authorizationId)}`,
+      `/oauth/consent?authorization_id=${encodeURIComponent(authorizationId)}`,
       302,
     );
   });
 
   // -------------------------------------------------------------------------
-  // POST /auth/consent?authorization_id=<id>
+  // POST /oauth/consent?authorization_id=<id>
   //   body: { approve: boolean }
   // Forwards the decision to Supabase, which responds with a redirect_url
   // pointing back to the MCP client (with `code` & `state`, or an error).
   // -------------------------------------------------------------------------
-  server.app.post("/auth/consent", async (c) => {
+  server.app.post("/oauth/consent", async (c) => {
     const authorizationId = new URL(c.req.url).searchParams.get(
       "authorization_id",
     );

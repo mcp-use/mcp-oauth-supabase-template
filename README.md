@@ -41,7 +41,7 @@ In the Supabase Dashboard, under **Authentication** → **OAuth Server**:
 1. Enable the OAuth Server.
 2. Set the **consent screen URL** to:
    ```
-   http://localhost:3000/auth/consent
+   http://localhost:3000/oauth/consent
    ```
    (For production, change this to your deployed URL.)
 
@@ -55,7 +55,7 @@ In the Supabase Dashboard under **Authentication** → **Providers**, enable the
 Then add this callback URL to the **allowed redirect URLs** for each provider (in Auth → URL Configuration):
 
 ```
-http://localhost:3000/auth/callback
+http://localhost:3000/oauth/callback
 ```
 
 ### 4. (Optional) Create the `notes` table
@@ -104,7 +104,7 @@ The inspector is at <http://localhost:3000/inspector>.
 
 1. Open <http://localhost:3000/inspector>
 2. Connect to `http://localhost:3000/mcp`
-3. Inspector triggers the OAuth flow — Supabase redirects you to `/auth/consent` here
+3. Inspector triggers the OAuth flow — Supabase redirects you to `/oauth/consent` here
 4. Click **Continue with Google** or **Continue with GitHub**, complete the provider's flow
 5. Click **Approve** on the consent page
 6. Back in the inspector, call:
@@ -125,11 +125,11 @@ MCP Client ──(1) MCP request without token ─▶ MCP Server ──▶ 401 +
 MCP Client ──(2) GET /.well-known/oauth-protected-resource ─▶ MCP Server
 MCP Client ──(3) GET /.well-known/oauth-authorization-server ─▶ Supabase
 MCP Client ──(4) Dynamic Client Registration ─▶ Supabase
-MCP Client ──(5) GET /authorize ─▶ Supabase ──▶ redirect to /auth/consent (this server)
+MCP Client ──(5) GET /authorize ─▶ Supabase ──▶ redirect to /oauth/consent (this server)
               ──▶ user signs in via Google/GitHub (through Supabase Auth)
-              ──▶ /auth/callback exchanges the code, sets the session cookie
-              ──▶ /auth/consent renders; user approves scopes
-              ──▶ /auth/consent POSTs back to Supabase ──▶ redirect to MCP client with code
+              ──▶ /oauth/callback exchanges the code, sets the session cookie
+              ──▶ /oauth/consent renders; user approves scopes
+              ──▶ /oauth/consent POSTs back to Supabase ──▶ redirect to MCP client with code
 MCP Client ──(6) Token exchange ─▶ Supabase
 MCP Client ──(7) MCP request + Bearer <jwt> ─▶ MCP Server (verifies via Supabase JWKS)
 ```
@@ -161,16 +161,16 @@ npx mcp-use deploy
 
 Before deploying:
 
-1. Update the consent screen URL in the Supabase Dashboard to your deployed URL (e.g. `https://your-app.run.mcp-use.com/auth/consent`).
-2. Update each enabled provider's allowed redirect URL to match `<your-host>/auth/callback`.
+1. Update the consent screen URL in the Supabase Dashboard to your deployed URL (e.g. `https://your-app.run.mcp-use.com/oauth/consent`).
+2. Update each enabled provider's allowed redirect URL to match `<your-host>/oauth/callback`.
 3. Set `MCP_USE_OAUTH_SUPABASE_SITE_URL` to your public URL so OAuth callbacks compose correctly.
 4. For the `list-notes` example, ensure your RLS policies are correct for your data model.
 
 ## Troubleshooting
 
 - **"Unsupported provider: …"** — only `google` and `github` are enabled by default. Add more to `PROVIDERS` in `src/auth-routes.ts`.
-- **"Failed to start {provider} sign-in"** — the provider is not enabled in the Supabase dashboard, or the callback URL isn't whitelisted. Enable it under Auth → Providers and add `<SITE_URL>/auth/callback` to the allowed redirect URLs.
-- **PKCE / "code verifier missing"** — a cookie was dropped between `/auth/signin/:provider` and `/auth/callback`. Make sure the browser's cookies for your domain aren't being blocked, and that `MCP_USE_OAUTH_SUPABASE_SITE_URL` matches the host the browser sees.
+- **"Failed to start {provider} sign-in"** — the provider is not enabled in the Supabase dashboard, or the callback URL isn't whitelisted. Enable it under Auth → Providers and add `<SITE_URL>/oauth/callback` to the allowed redirect URLs.
+- **PKCE / "code verifier missing"** — a cookie was dropped between `/oauth/signin/:provider` and `/oauth/callback`. Make sure the browser's cookies for your domain aren't being blocked, and that `MCP_USE_OAUTH_SUPABASE_SITE_URL` matches the host the browser sees.
 
 ## Learn more
 
