@@ -21,7 +21,7 @@
     "clsx": "^2.1.1",
     "hono": "^4.11.0",
     "lucide-react": "^0.575.0",
-    "mcp-use": "^1.28.0",
+    "mcp-use": "latest",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.5.0"
